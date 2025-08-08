@@ -11,42 +11,35 @@ const gpa = util.gpa;
 const data = @embedFile("data/day01.txt");
 
 pub fn main() !void {
-    var lines = splitAny(u8, data, "\n");
+    var left = std.ArrayList(i32).init(gpa);
+    defer left.deinit();
+    var right = std.ArrayList(i32).init(gpa);
+    defer right.deinit();
 
-    var left = std.ArrayList(isize).init(gpa);
-    var right = std.ArrayList(isize).init(gpa);
-
+    var lines = std.mem.splitScalar(u8, data, '\n');
     while (lines.next()) |line| {
-        if (line.len == 0) continue; // Skip empty lines
+        if (line.len == 0) continue;
 
-        var parts = tokenizeAny(u8, line, " \t");
+        var parts = std.mem.tokenizeScalar(u8, line, ' ');
+        const left_str = parts.next() orelse continue;
+        const right_str = parts.next() orelse continue;
 
-        const leftpart = parts.next() orelse {
-            print("No left part found\n", .{});
-            continue;
-        };
-        const rightpart = parts.next() orelse {
-            print("No right part found\n", .{});
-            continue;
-        };
+        const left_val = try std.fmt.parseInt(i32, left_str, 10);
+        const right_val = try std.fmt.parseInt(i32, right_str, 10);
 
-        const leftparsed = try parseInt(isize, leftpart, 10);
-        const rightparsed = try parseInt(isize, rightpart, 10);
-
-        try left.append(leftparsed);
-        try right.append(rightparsed);
+        try left.append(left_val);
+        try right.append(right_val);
     }
 
-    std.mem.sort(isize, left.items, {}, std.sort.asc(isize));
-    std.mem.sort(isize, right.items, {}, std.sort.asc(isize));
+    std.mem.sort(i32, left.items, {}, std.sort.asc(i32));
+    std.mem.sort(i32, right.items, {}, std.sort.asc(i32));
 
-    var total: isize = 0;
+    var total: u32 = 0;
     for (left.items, right.items) |l, r| {
-        const dist: isize = @intCast(@abs(l - r));
-        total += dist;
+        total += @abs(l - r);
     }
 
-    print("Total distance: {}\n", .{total});
+    std.debug.print("Total distance: {}\n", .{total});
 }
 // Useful stdlib functions
 const tokenizeAny = std.mem.tokenizeAny;
