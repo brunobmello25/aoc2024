@@ -31,15 +31,14 @@ pub fn main() !void {
         try right.append(right_val);
     }
 
-    std.mem.sort(i32, left.items, {}, std.sort.asc(i32));
-    std.mem.sort(i32, right.items, {}, std.sort.asc(i32));
-
-    var total: u32 = 0;
-    for (left.items, right.items) |l, r| {
-        total += @abs(l - r);
+    var score: i32 = 0;
+    for (left.items) |l| {
+        for (right.items) |r| {
+            if (l == r) score += l;
+        }
     }
 
-    std.debug.print("Total distance: {}\n", .{total});
+    print("Score: {}\n", .{score});
 }
 // Useful stdlib functions
 const tokenizeAny = std.mem.tokenizeAny;
