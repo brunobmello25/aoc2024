@@ -15,7 +15,7 @@ pub fn main() !void {
     var safe_count: i32 = 0;
 
     while (lines.next()) |line| {
-        if (try is_safe(line)) {
+        if (try is_safe(line) or try will_be_safe(line)) {
             safe_count += 1;
         }
     }
@@ -65,31 +65,32 @@ fn will_be_safe(line: []const u8) !bool {
 
         for (0..list.items.len) |j| {
             if (i != j) {
-                try candidate_list.append(@intCast(j));
+                try candidate_list.append(@intCast(list.items[j]));
             }
         }
 
         const slice = try candidate_list.toOwnedSlice();
-        if (try is_safe(join(slice))) {
+        defer gpa.free(slice);
+
+        if (try is_safe(try join(slice))) {
             return true;
         }
     }
     return false;
 }
 
-fn join(elements: []i32) []u8 {
+fn join(elements: []i32) ![]u8 {
     var str = std.ArrayList(u8).init(gpa);
     defer str.deinit();
 
-    var buf: [20]u8 = undefined;
-
+    var writer = str.writer();
     for (elements, 0..) |e, i| {
-        // TODO: bruno - entender melhor esse buf [0..]
-        // FIXME: provavelmente essa linha aqui é o que ta crashando o programa
-        str.append(try std.fmt.format(buf[0..], "{d}", .{e}));
+        var buf: [20]u8 = undefined; // Buffer large enough for most int conversions
+        const num_str = try std.fmt.bufPrint(&buf, "{d}", .{e});
+        try writer.writeAll(num_str);
 
-        if (i < elements.len - 1) {
-            str.append(' ');
+        if (i != elements.len - 1) {
+            try writer.writeByte(' ');
         }
     }
 
