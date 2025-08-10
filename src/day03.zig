@@ -11,6 +11,7 @@ const gpa = util.gpa;
 const file = @embedFile("data/day03.txt");
 
 var index: usize = 0;
+var add_enabled = true;
 
 pub fn main() !void {
     const data = std.mem.bytesAsSlice(u8, file);
@@ -29,7 +30,7 @@ fn process_all_operations(data: []const u8) isize {
 
         const op_result = process_operation(data) orelse continue;
         print("Operation result: {}\n", .{op_result});
-        result += op_result;
+        result += if (add_enabled) op_result else 0;
     }
 
     return result;
@@ -45,8 +46,72 @@ fn process_operation(data: []const u8) ?isize {
     advance_till_alphabetic(data);
     if (is_done(data)) return null;
 
-    advance_till_target(data, 'm');
+    advance_till_targets(data, "md");
+    if (is_done(data)) return null;
 
+    if (data[index] == 'm') {
+        return process_mul_operation(data);
+    } else if (data[index] == 'd') {
+        process_toggle_operation(data);
+        return null;
+    } else unreachable;
+}
+
+fn process_toggle_operation(data: []const u8) void {
+    advance_till_alphabetic(data);
+    if (is_done(data)) return;
+
+    const word = consume_word(data) catch return;
+    if (std.mem.eql(u8, word, "don") and data[index] == '\'') {
+        advance();
+
+        if (is_done(data) or data[index] != 't') return;
+        advance();
+
+        if (data[index] != '(') return;
+        advance();
+
+        if (data[index] != ')') return;
+        advance();
+
+        add_enabled = false;
+    } else if (std.mem.eql(u8, word, "do") and data[index] == '(') {
+        advance();
+        if (is_done(data) or data[index] != ')') return;
+
+        add_enabled = true;
+        advance();
+
+        return;
+    }
+}
+
+test "process toggle operation" {
+    index = 0;
+    add_enabled = true;
+    const data = "don't()do()do()don't()do()";
+    process_toggle_operation(data);
+    try std.testing.expect(!add_enabled);
+    try std.testing.expectEqual(7, index);
+
+    process_toggle_operation(data);
+    try std.testing.expect(add_enabled);
+    try std.testing.expectEqual(11, index);
+
+    process_toggle_operation(data);
+    try std.testing.expect(add_enabled);
+    try std.testing.expectEqual(15, index);
+
+    process_toggle_operation(data);
+    try std.testing.expect(!add_enabled);
+    try std.testing.expectEqual(22, index);
+
+    process_toggle_operation(data);
+    try std.testing.expect(add_enabled);
+    try std.testing.expectEqual(26, index);
+}
+
+fn process_mul_operation(data: []const u8) ?isize {
     const word = consume_word(data) catch return null;
 
     if (!std.mem.eql(u8, word, "mul")) return null;
@@ -68,8 +133,8 @@ test "process operation" {
     try std.testing.expectEqual(12, result);
 }
 
-fn advance_till_target(data: []const u8, target: u8) void {
-    while (!is_done(data) and data[index] != target) {
+fn advance_till_targets(data: []const u8, targets: []const u8) void {
+    while (!is_done(data) and std.mem.indexOfScalar(u8, targets, data[index]) == null) {
         advance();
     }
 }
